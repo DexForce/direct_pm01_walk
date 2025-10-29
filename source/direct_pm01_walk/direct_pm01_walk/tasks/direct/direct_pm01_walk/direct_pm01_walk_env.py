@@ -60,11 +60,38 @@ class DirectPm01WalkEnv(DirectRLEnv):
 
     def _get_rewards(self) -> torch.Tensor:
         l2 = flat_orientation_l2(self)  # 传入 env
+        #print("flat_orientation_l2:", l2.mean().item())
         reward = -l2
 
         penalty = fall_penalty(self)
-        reward = reward - penalty
+        #print("fall_penalty:", penalty.mean().item())
+        reward -= penalty
 
+        joint_pos_limits_penalty = joint_pos_limits(self)
+        #print("joint_pos_limits_penalty:", joint_pos_limits_penalty.mean().item())
+        reward -= joint_pos_limits_penalty * 0.1
+
+        joint_torques_penalty = joint_torques_l2(self)
+        #print("joint_torques_penalty:", joint_torques_penalty.mean().item())
+        reward -= joint_torques_penalty * 0.01
+
+        joint_acc_penalty = joint_acc_l2(self)
+        #print("joint_acc_penalty:", joint_acc_penalty.mean().item())
+        reward -= joint_acc_penalty * 0.00000001
+
+        action_rate_penalty = action_rate_l2(self)
+        #print("action_rate_penalty:", action_rate_penalty.mean().item())
+        reward -= action_rate_penalty * 0.01
+
+        lin_vel_z_penalty = lin_vel_z_l2(self)
+        #print("lin_vel_z_penalty:", lin_vel_z_penalty.mean().item())
+        reward -= lin_vel_z_penalty * 0.01
+
+        ang_vel_xy_penalty = ang_vel_xy_l2(self)
+        #print("ang_vel_xy_penalty:", ang_vel_xy_penalty.mean().item())
+        reward -= ang_vel_xy_penalty * 0.01
+
+        #print("total reward:", reward.mean().item())
         return reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -92,6 +119,19 @@ class DirectPm01WalkEnv(DirectRLEnv):
         root_state[:, :3] += self.scene.env_origins[env_ids]
 
         #print("root state after setting origin:", root_state[0])
+
+        # # 姿态添加少量随机扰动
+        # quat = torch.tensor([1, 0, 0, 0], device=self.device).repeat(len(env_ids), 1)
+        # noise_axis = torch.randn_like(quat[:, 1:])
+        # noise_axis = noise_axis / torch.norm(noise_axis, dim=-1, keepdim=True)
+        # noise_angle = 0.05 * torch.randn(len(env_ids), 1, device=self.device)  # 约3度随机旋转
+        # sin_half = torch.sin(noise_angle / 2)
+        # quat_noise = torch.cat([torch.cos(noise_angle / 2), sin_half * noise_axis], dim=-1)
+        # root_state[:, 3:7] = quat_noise
+
+        # #base质心添加少量随机扰动
+        # com_offset = 0.01 * torch.randn(len(env_ids), 3, device=self.device)
+        # self.robot.data.com_pos_w[env_ids] += com_offset
 
         # 写入仿真
         self.robot.write_root_pose_to_sim(root_state[:, :7], env_ids)
