@@ -53,12 +53,12 @@ class Pm01WalkSceneCfg(InteractiveSceneCfg):
 class DirectPm01WalkEnvCfg(DirectRLEnvCfg):
     # env
     decimation = 2
-    episode_length_s = 30.0
+    episode_length_s = 10.0
 
     # - spaces definition
     action_space = 24
     observation_space = 57
-    state_space = 0
+    state_space = 2
 
     # simulation
     sim: SimulationCfg = SimulationCfg(dt=1 / 200, render_interval=decimation)
