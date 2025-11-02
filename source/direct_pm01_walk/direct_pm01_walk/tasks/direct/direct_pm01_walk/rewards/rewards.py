@@ -175,8 +175,8 @@ def get_gait_phase_reward(env):
 
     # 归一化与截断，避免极端大值
     r_phase = torch.tanh(r_phase * 5.0)
-    # 限制最大值为 0.4
-    r_phase = torch.clamp(r_phase, max=0.4, min=-0.4)
+    # 限制最大值为 0.2
+    r_phase = torch.clamp(r_phase, max=0.2, min=-0.2)
 
     return r_phase
 
