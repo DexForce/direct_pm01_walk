@@ -70,8 +70,8 @@ class DirectPm01WalkEnv(DirectRLEnv):
 
 
     def _get_observations(self) -> dict:
-        base_lin_vel = self.robot.data.root_lin_vel_b
-        base_ang_vel = self.robot.data.root_ang_vel_b
+        base_lin_vel = torch.zeros_like(self.robot.data.root_lin_vel_b) # self.robot.data.root_lin_vel_b
+        base_ang_vel = torch.zeros_like(self.robot.data.root_ang_vel_b) # self.robot.data.root_ang_vel_b
         joint_pos = self.robot.data.joint_pos
         joint_vel = self.robot.data.joint_vel
 
