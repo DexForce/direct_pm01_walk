@@ -65,10 +65,10 @@ class CommandCfg:
     # 指令刷新时间间隔范围（秒）
     resample_interval_range = (5.0, 10.0)
     # 机体坐标系下的目标线速度范围（m/s）
-    lin_vel_x = (-0.0, 1.0)
+    lin_vel_x = (-0.0, 0.0)
     lin_vel_y = (-0.0, 0.0)
     # 机体坐标系下的目标偏航角速度范围（rad/s）
-    ang_vel_yaw = (-1.0, 1.0)
+    ang_vel_yaw = (-0.0, 0.0)
 
 
 
@@ -87,7 +87,7 @@ class DirectPm01WalkEnvCfg(DirectRLEnvCfg):
     # simulation
     sim: SimulationCfg = SimulationCfg(dt=1 / 200, 
                                        render_interval=decimation, 
-                                       #gravity=(0.0, 0.0, 0.0),
+                                       gravity=(0.0, 0.0, 0.0),
     )
 
     # scene
