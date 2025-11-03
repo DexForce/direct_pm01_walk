@@ -5,6 +5,8 @@
 
 """Configuration for a simple Cartpole robot."""
 
+import os
+from pathlib import Path
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -15,9 +17,33 @@ from isaaclab.assets import ArticulationCfg
 # Configuration
 ##
 
+def _resolve_usd_path() -> str:
+    """解析 USD 资源路径，并在缺少 Git LFS 资源时给出明确提示。"""
+
+    usd_path = Path(__file__).resolve().parent / "usd" / "pm01.usd"
+    if not usd_path.exists():
+        raise FileNotFoundError(
+            f"未找到 PM01 USD 资源文件：{usd_path}. 请确认仓库克隆完整。"
+        )
+
+    try:
+        with usd_path.open("rb") as usd_file:
+            header = usd_file.read(128)
+    except OSError as exc:  # pragma: no cover - 仅在文件系统异常时触发
+        raise OSError(f"无法读取 PM01 USD 资源文件：{usd_path}") from exc
+
+    if header.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise RuntimeError(
+            "检测到 PM01 USD 资源仍为 Git LFS 指针文件。"
+            "请在仓库根目录执行 `git lfs install` 和 `git lfs pull` 后重试。"
+        )
+
+    return usd_path.as_posix()
+USD_PATH = _resolve_usd_path()
+
 PM01_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"D:\\code\\isaaclab_ws\\PM01_Walk\\source\\PM01_Walk\\PM01_Walk\\assets\\robots\\pm01\\usd\\pm01.usd",
+        usd_path=USD_PATH,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             enable_gyroscopic_forces=True,
