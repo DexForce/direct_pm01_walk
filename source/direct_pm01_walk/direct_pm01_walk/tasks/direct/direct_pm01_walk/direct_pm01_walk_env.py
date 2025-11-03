@@ -176,7 +176,7 @@ class DirectPm01WalkEnv(DirectRLEnv):
                                                                       "j18_shoulder_pitch_r", "j19_shoulder_roll_r", "j20_shoulder_yaw_r",
                                                                       "j21_elbow_pitch_r", "j22_elbow_yaw_r",
                                                                       "j23_head_yaw"])
-        weight = 0.1
+        weight = 2.0
         reward -= upper_body_deviation_penalty * weight
         print("upper_body_deviation_penalty: %.3f \t weighted: %.3f" % (-upper_body_deviation_penalty.mean().item(), -upper_body_deviation_penalty.mean().item() * weight))
 
