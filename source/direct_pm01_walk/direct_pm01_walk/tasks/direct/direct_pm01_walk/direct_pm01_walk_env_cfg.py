@@ -87,7 +87,7 @@ class DirectPm01WalkEnvCfg(DirectRLEnvCfg):
     # simulation
     sim: SimulationCfg = SimulationCfg(dt=1 / 200, 
                                        render_interval=decimation, 
-                                       #gravity=(0.0, 0.0, 0.0),
+                                       gravity=(0.0, 0.0, 0.0),
     )
 
     # scene

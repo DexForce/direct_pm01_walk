@@ -79,8 +79,13 @@ class DirectPm01WalkEnv(DirectRLEnv):
         current_ang_vel_b = self.robot.data.root_ang_vel_b
         # IMU 安装在 base link 原点且坐标与 base 一致，因此直接使用身体坐标系下的速度做差分。
         # 差分过程中不涉及世界系转换，得到的线/角加速度仍然位于 IMU（身体）坐标系。
+
         imu_lin_acc_b = (current_lin_vel_b - self._prev_root_lin_vel_b) / self.control_dt
-        imu_ang_acc_b = (current_ang_vel_b - self._prev_root_ang_vel_b) / self.control_dt
+        imu_ang_acc_b = (current_ang_vel_b - self._prev_root_ang_vel_b) / self.control_dt / 10
+        
+        imu_lin_acc_b = 0.1 * torch.tanh(imu_lin_acc_b)
+        imu_ang_acc_b = 0.1 * torch.tanh(imu_ang_acc_b)
+
         self._prev_root_lin_vel_b.copy_(current_lin_vel_b)
         self._prev_root_ang_vel_b.copy_(current_ang_vel_b)
     
@@ -160,7 +165,7 @@ class DirectPm01WalkEnv(DirectRLEnv):
         reward -= lin_vel_z_penalty * weight
 
         ang_vel_xy_penalty = ang_vel_xy_l2(self)
-        weight = 0.01
+        weight = 0.00
         print("ang_vel_xy_penalty: %.3f \t weighted: %.3f" % (-ang_vel_xy_penalty.mean().item(), -ang_vel_xy_penalty.mean().item() * weight))
         reward -= ang_vel_xy_penalty * weight
 
@@ -179,6 +184,13 @@ class DirectPm01WalkEnv(DirectRLEnv):
         weight = 0.1
         reward -= upper_body_deviation_penalty * weight
         print("upper_body_deviation_penalty: %.3f \t weighted: %.3f" % (-upper_body_deviation_penalty.mean().item(), -upper_body_deviation_penalty.mean().item() * weight))
+
+        waist_head_deviation_penalty = joint_deviation_l1(self, 
+                                                         joint_names=["j12_waist_yaw", "j23_head_yaw"])
+        weight = 2.0
+        reward -= waist_head_deviation_penalty * weight
+        print("waist_head_deviation_penalty: %.3f \t weighted: %.3f" % (-waist_head_deviation_penalty.mean().item(), -waist_head_deviation_penalty.mean().item() * weight))
+
 
         hip_deviation_penalty = joint_deviation_l1(self, joint_names=["j02_hip_yaw_l", "j08_hip_yaw_r", "j01_hip_roll_l", "j07_hip_roll_r"])
         weight = 1.0
@@ -225,12 +237,12 @@ class DirectPm01WalkEnv(DirectRLEnv):
 
         #指令跟踪奖励
         command_lin_vel_reward = command_lin_vel_tracking_reward(self)
-        weight = 3.0
+        weight = 0#3.0
         reward += command_lin_vel_reward * weight
         print("command_lin_vel_reward: %.3f \t weighted: %.3f" % (command_lin_vel_reward.mean().item(), command_lin_vel_reward.mean().item() * weight))
 
         command_ang_vel_reward = command_ang_vel_tracking_reward(self)
-        weight = 0.5
+        weight = 0#0.5
         reward += command_ang_vel_reward * weight
         print("command_ang_vel_reward: %.3f \t weighted: %.3f" % (command_ang_vel_reward.mean().item(), command_ang_vel_reward.mean().item() * weight))
 
@@ -240,7 +252,9 @@ class DirectPm01WalkEnv(DirectRLEnv):
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         fallen = self.robot.data.root_pos_w[:, 2] < 0.4
-        done = fallen
+        l2 = flat_orientation_l2(self)
+        tilted = l2 > 0.1   # 阈值可根据实际模型重心调
+        done = torch.logical_or(fallen, tilted)
         return done, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | None):
