@@ -79,8 +79,8 @@ PM01_CFG = ArticulationCfg(
         "ankles": ImplicitActuatorCfg(
             joint_names_expr=[".*ankle.*"],
             effort_limit_sim=150.0,
-            stiffness=50.0,
-            damping=5.0,
+            stiffness=100.0,
+            damping=10.0,
         ),        
         "default": ImplicitActuatorCfg(
             joint_names_expr=[".*"],     # ✅ 匹配全部关节
