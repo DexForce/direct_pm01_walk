@@ -52,7 +52,7 @@ class Pm01WalkSceneCfg(InteractiveSceneCfg):
     )
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/.*", 
+        prim_path="{ENV_REGEX_NS}/Robot/(link_ankle_roll_l|link_ankle_roll_r)$", 
         history_length=3, 
         track_air_time=True,
         update_period=0.01
