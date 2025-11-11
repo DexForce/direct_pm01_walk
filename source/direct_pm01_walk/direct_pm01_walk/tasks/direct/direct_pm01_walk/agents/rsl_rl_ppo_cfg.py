@@ -13,7 +13,7 @@ class PPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 100
     max_iterations = 30
     save_interval = 50
-    experiment_name = "cartpole_direct"
+    experiment_name = "pm01_walk"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
