@@ -279,6 +279,74 @@ def joint_deviation_l1(env, joint_names=None):
     deviation = torch.abs(joint_pos - default_joint_pos)
     return torch.sum(deviation, dim=1)
 
+    
+def joint_deviation_l2(env, joint_names=None):
+    """指定关节的偏离默认角度的 L2 惩罚。
+
+    参数:
+        env: 环境对象，需包含 env.robot.data.joint_pos / default_joint_pos。
+        joint_names: list[str] 或 None，指定要计算的关节名。
+                      若为 None，则默认使用全部关节。
+    返回:
+        (num_envs,) 张量，表示每个环境的总偏差平方和。
+    """
+    joint_pos = env.robot.data.joint_pos
+    default_joint_pos = env.robot.data.default_joint_pos
+    all_joint_names = env.robot.joint_names  # list[str]
+
+    if joint_names is not None:
+        # 找出指定关节的索引
+        idx = [all_joint_names.index(name) for name in joint_names if name in all_joint_names]
+        if len(idx) == 0:
+            raise ValueError(f"未找到任何匹配的关节名：{joint_names}")
+        joint_pos = joint_pos[:, idx]
+        default_joint_pos = default_joint_pos[:, idx]
+
+    # 计算 L2 偏离（平方和）
+    deviation = (joint_pos - default_joint_pos).pow(2)
+    return torch.sum(deviation, dim=1)
+    
+
+def joint_angle_threshold_reward(env, joint_names, threshold=0.3):
+    """
+    当指定关节的角度大于 threshold 时，返回 1，否则返回 0。
+    对每个环境取平均结果作为奖励。
+
+    参数:
+        env: 仿真环境对象，包含 env.robot.data.joint_pos。
+        joint_names: list[str]，指定需要检查的关节名。
+        threshold: float，阈值角度，单位与 joint_pos 相同。
+
+    返回:
+        (num_envs,) 张量，值在 [0,1] 之间。
+    """
+    joint_pos = env.robot.data.joint_pos  # (num_envs, num_joints)
+    all_joint_names = env.robot.joint_names
+
+    # 找出这些关节的索引
+    indices = []
+    for name in joint_names:
+        try:
+            indices.append(all_joint_names.index(name))
+        except ValueError:
+            raise ValueError(f"无法在 joint_names 中找到关节：{name}")
+
+    if len(indices) == 0:
+        return torch.zeros(joint_pos.shape[0], device=env.device, dtype=joint_pos.dtype)
+
+    # 提取这些关节的角度
+    selected = joint_pos[:, indices]  # (num_envs, len(indices))
+
+    # 判断是否大于阈值
+    mask = (selected > threshold).float()  # 大于 threshold → 1，否则 0
+
+    # 对每个环境计算这些关节的平均比例
+    reward = mask.mean(dim=1)  # (num_envs,)
+
+    return reward
+
+
+
 def joint_symmetry_l2(env, joint_pairs):
     """
     鼓励指定成对关节相对于默认位置保持对称。

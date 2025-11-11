@@ -211,6 +211,11 @@ class DirectPm01WalkEnv(DirectRLEnv):
         reward -= hip_deviation_penalty * weight
         print("hip_deviation_penalty: %.3f \t weighted: %.3f" % (-hip_deviation_penalty.mean().item(), -hip_deviation_penalty.mean().item() * weight))
 
+        hip_deviation_l2_penalty = joint_deviation_l2(self, joint_names=["j02_hip_yaw_l", "j08_hip_yaw_r", "j01_hip_roll_l", "j07_hip_roll_r"])
+        weight = 10.0
+        reward -= hip_deviation_l2_penalty * weight
+        print("hip_deviation_l2_penalty: %.3f \t weighted: %.3f" % (-hip_deviation_l2_penalty.mean().item(), -hip_deviation_l2_penalty.mean().item() * weight))
+
         leg_deviation_penalty = joint_deviation_l1(self, 
                                                    joint_names=["j00_hip_pitch_l", "j06_hip_pitch_r",
                                                                 "j03_knee_pitch_l", "j09_knee_pitch_r",
@@ -313,7 +318,7 @@ class DirectPm01WalkEnv(DirectRLEnv):
         quat[:, 1:] = 0.0
         noise_axis = torch.randn_like(quat[:, 1:])
         noise_axis = noise_axis / torch.norm(noise_axis, dim=-1, keepdim=True)
-        noise_angle = 0.05 * torch.randn(len(env_ids), 1, device=self.device)  # 约9度随机旋转
+        noise_angle = 0.02 * torch.randn(len(env_ids), 1, device=self.device)  # 约9度随机旋转
         sin_half = torch.sin(noise_angle / 2)
         quat_noise = torch.cat([torch.cos(noise_angle / 2), sin_half * noise_axis], dim=-1)
         #root_state[:, 3:7] = quat_noise
