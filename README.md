@@ -1,4 +1,50 @@
-# Template for Isaac Lab Projects
+# Isaac Lab Projects : PM01 步行训练
+
+安装 isaaclab 时，务必先 checkout 这个版本 239374d4d2ee7891499c24033ba5c155502d669d
+
+isaaclab 更新的太频繁，后面的版本可能会导致运行失败
+
+1. **安装依赖**
+
+   ```bash
+   # 在本工程根目录下
+   python -m pip install -e source/direct_pm01_walk
+   ```
+
+2. **验证安装**
+
+   * **列出可用任务**
+
+     ```bash
+     python scripts/list_envs.py
+     ```
+
+   * **运行训练**
+
+     ```bash
+     ./train.bat 
+     ```
+
+   * **使用虚拟智能体运行（测试环境配置）**
+
+     *使用最新训练的智能体（Use Latest Agent）*：
+
+     ```bash
+     play.bat
+     ```     
+     
+     *零动作智能体（Zero Agent）*：
+
+     ```bash
+     zero.bat
+     ```
+
+     *随机动作智能体（Random Agent）*：
+
+     ```bash
+     random.bat
+     ```
+
 
 ## Overview
 
