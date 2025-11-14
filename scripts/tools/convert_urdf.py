@@ -116,6 +116,7 @@ def main():
             ),
             target_type=args_cli.joint_target_type,
         ),
+        self_collision=True
     )
 
     # Print info
