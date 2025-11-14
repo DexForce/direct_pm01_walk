@@ -236,9 +236,9 @@ def get_gait_phase_reward(env):
     phase_sin = torch.sin(phase)
 
     # 理想的脚高度曲线：sin(phase) 对应的目标高度
-    # 左脚：在 sin>0 时高，右脚相反
-    target_L = 0.2 * torch.clamp(phase_sin, min=0.0)   # 正半周抬高到 +0.2m
-    target_R = 0.2 * torch.clamp(-phase_sin, min=0.0)  # 负半周抬高到 +0.2m
+    # 左脚：在 sin>0 时高，右脚相反 .
+    target_L = 0.4 * torch.clamp(phase_sin - 0.5, min=0.0)   # 正半周抬高到 +0.1m
+    target_R = 0.4 * torch.clamp(-phase_sin - 0.5, min=0.0)  # 负半周抬高到 +0.1
 
     # 实际脚高度与目标高度的偏差
     err_L = (zL - target_L).pow(2)

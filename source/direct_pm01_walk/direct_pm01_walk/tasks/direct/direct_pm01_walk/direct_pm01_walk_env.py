@@ -70,7 +70,7 @@ class DirectPm01WalkEnv(DirectRLEnv):
 
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
-        phase_delta = 2 * math.pi * self.cfg.sim.dt / 0.8  #周期为0.8秒
+        phase_delta = 2 * math.pi * self.cfg.sim.dt / 2.0  #周期为2.0秒
         self.gait_phase = (self.gait_phase + phase_delta) % (2 * math.pi)
 
         self.actions = actions.clone()
@@ -169,6 +169,11 @@ class DirectPm01WalkEnv(DirectRLEnv):
         print("action_rate_penalty: %.3f \t weighted: %.3f" % (-action_rate_penalty.mean().item(), -action_rate_penalty.mean().item() * weight))
         reward -= action_rate_penalty * weight
         
+        joint_threashold_reward = joint_angle_threshold_reward(self, ["j03_knee_pitch_l", "j09_knee_pitch_r"], threshold=0.2)
+        weight = 1
+        print("joint_threashold_reward: %.3f \t weighted: %.3f" % (joint_threashold_reward.mean().item(), joint_threashold_reward.mean().item() * weight))
+        reward += joint_threashold_reward * weight
+
         # action_velocity_continuity_penalty = action_velocity_continuity(self)
         # weight = 0.01
         # print("action_velocity_continuity_penalty: %.3f \t weighted: %.3f" % (-action_velocity_continuity_penalty.mean().item(), -action_velocity_continuity_penalty.mean().item() * weight))
