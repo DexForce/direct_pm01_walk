@@ -63,11 +63,87 @@ class DirectPm01WalkEnv(DirectRLEnv):
         self.phase_threshold = 0.1  # 弧度阈值
         self.phase_refs = torch.tensor([0.0, math.pi/2, math.pi, 3*math.pi/2], device=self.device)
 
+        # 推力相关状态
+        self.push_timer = torch.zeros(self.num_envs, device=self.device)
+        self.push_cooldown = torch.zeros(self.num_envs, device=self.device)
+        self.push_force = torch.zeros(self.num_envs, 3, device=self.device)
+
+        # 随机推力的范围
+        self.push_force_range = (-50.0, 50.0)       # 牛顿
+        self.push_interval_range = (1.0, 3.0)         # 两次推力间隔（秒）
+        self.push_duration_range = (0.2, 0.6)         # 推力持续时间（秒）
+
+        self.robot.set_debug_vis(True)
+        print(self.robot.has_debug_vis_implementation)
 
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.scene.robot)
         self.scene.articulations["robot"] = self.robot
 
+    def _apply_push_force(self, force_vec):
+        """将当前 push_force 写入到机器人肩部 link。"""
+
+        target_links = [
+            "link_torso_yaw",
+        ]
+
+        env_ids = torch.arange(self.num_envs, device=self.device)
+
+        # 构造 buffer
+        forces = torch.zeros((self.num_envs, self.robot.num_bodies, 3), device=self.device)
+        torques = torch.zeros_like(forces)
+
+        for name in target_links:
+            body_ids, _ = self.robot.find_bodies(name)
+            bid = body_ids[0]
+            forces[:, bid, :] = force_vec  # force_vec shape: (num_envs, 3)
+
+        # 写入缓存
+        self.robot.set_external_force_and_torque(
+            forces=forces,
+            torques=torques,
+            env_ids=env_ids,
+            is_global=True,
+        )
+
+    def _update_random_push(self):
+        """周期性地随机施加推力 + 随机方向 + 随机持续时间。"""
+
+        dt = self.control_dt
+        env_ids = torch.arange(self.num_envs, device=self.device)
+
+        # 更新计时器
+        self.push_timer -= dt
+        self.push_cooldown -= dt
+
+        # 哪些环境需要开始新的推力？
+        start_new = self.push_cooldown <= 0
+
+        if start_new.any():
+            # 重新设定 cooldown（下一次推力之前的等待时间）
+            new_intervals = torch.rand_like(self.push_cooldown[start_new]) * \
+                            (self.push_interval_range[1] - self.push_interval_range[0]) + self.push_interval_range[0]
+            self.push_cooldown[start_new] = new_intervals
+
+            # 设置本次推力持续时间
+            new_durations = torch.rand_like(self.push_timer[start_new]) * \
+                            (self.push_duration_range[1] - self.push_duration_range[0]) + self.push_duration_range[0]
+            self.push_timer[start_new] = new_durations
+
+            # 随机方向的推力
+            minf, maxf = self.push_force_range
+            rand_force = torch.rand((start_new.sum(), 3), device=self.device) * (maxf - minf) + minf
+            self.push_force[start_new] = rand_force
+
+        # 哪些环境正在推？
+        pushing = self.push_timer > 0
+
+        # 正在推的环境 → 使用 push_force
+        current_force = torch.zeros_like(self.push_force)
+        current_force[pushing] = self.push_force[pushing]
+
+        # 将力写入缓存（下一步将施加）
+        self._apply_push_force(current_force)
 
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
         phase_delta = 2 * math.pi * self.cfg.sim.dt / 0.8  #周期为0.8秒
@@ -90,6 +166,9 @@ class DirectPm01WalkEnv(DirectRLEnv):
             if near_ref.any():
                 # 记录这些环境的关键相位角度
                 self.phase_key_angles[i] = joint_pos.clone().detach()
+
+        #施加随机推力
+        self._update_random_push()
 
     def _apply_action(self) -> None:
         action_scale = 1.0
