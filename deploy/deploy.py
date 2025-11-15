@@ -31,7 +31,7 @@ class PolicyInferenceNode(Node):
         super().__init__('policy_inference_node')
 
         # ======== 加载策略模型 ========
-        checkpoint_path = '../logs/rsl_rl/pm01_walk/2025-11-13_19-25-44/exported/policy.pt'
+        checkpoint_path = '../logs/rsl_rl/pm01_walk/2025-11-14_12-34-23/exported/policy.pt'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.policy = torch.jit.load(checkpoint_path, map_location=self.device)
         self.policy.eval().to(self.device)
